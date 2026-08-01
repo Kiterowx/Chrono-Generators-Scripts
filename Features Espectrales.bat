@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 set "FFMPEG=ffmpeg"
 set "PYTHON=python"
-set "MEDIA_EXT=mkv mp4 avi mov ts m4v webm aac wav flac mp3 m4a opus ogg"
+set "AUDIO_EXT=wav"
 
 echo Operacion: spectral
 echo.
@@ -31,21 +31,26 @@ exit /b
 set "N=%~1"
 set "PAD=0%N%"
 set "PAD=%PAD:~-2%"
-set "MEDIA="
-for %%E in (%MEDIA_EXT%) do (
-    if not defined MEDIA if exist "%N%.%%E" set "MEDIA=%N%.%%E"
-    if not defined MEDIA if exist "%PAD%.%%E" set "MEDIA=%PAD%.%%E"
+set "AUDIO="
+for %%E in (%AUDIO_EXT%) do (
+    if not defined AUDIO if exist "%N%.%%E" set "AUDIO=%N%.%%E"
+    if not defined AUDIO if exist "%PAD%.%%E" set "AUDIO=%PAD%.%%E"
 )
-if not defined MEDIA (
-    echo [%PAD%] Omitido: archivo no encontrado.
+if not defined AUDIO (
+    echo [%PAD%] Omitido: WAV vocal no encontrado.
     exit /b
 )
-call :procesar_media "%MEDIA%" "%PAD%_Retimes"
+call :procesar_media "%AUDIO%" "%PAD%_Retimes"
 exit /b
 
 :procesar_archivo
 if not exist "%~1" (
     echo Omitido: "%~1"
+    exit /b
+)
+call :es_audio "%~1"
+if not defined ES_AUDIO (
+    echo Omitido: se requiere un WAV vocal: "%~1"
     exit /b
 )
 for %%F in ("%~1") do call :procesar_media "%%~fF" "%%~nF_Retimes"
@@ -80,6 +85,11 @@ if "!SIZE!"=="0" (
     exit /b
 )
 echo Salida: "!OUT!"
+exit /b
+
+:es_audio
+set "ES_AUDIO="
+for %%E in (%AUDIO_EXT%) do if /I "%~x1"==".%%E" set "ES_AUDIO=1"
 exit /b
 
 :run_spectral

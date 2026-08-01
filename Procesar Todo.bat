@@ -7,8 +7,7 @@ set "VADFLUX=vadflux.exe"
 set "SCXVID=SCXvid.exe"
 set "PYTHON=python"
 set "VIDEO_EXT=mkv mp4 avi mov ts m4v webm"
-set "AUDIO_EXT=aac wav flac mp3 m4a opus ogg"
-set "MEDIA_EXT=%VIDEO_EXT% %AUDIO_EXT%"
+set "AUDIO_EXT=wav"
 
 echo Operacion: completo
 echo.
@@ -36,16 +35,17 @@ exit /b
 set "N=%~1"
 set "PAD=0%N%"
 set "PAD=%PAD:~-2%"
-set "MEDIA="
-for %%E in (%MEDIA_EXT%) do (
-    if not defined MEDIA if exist "%N%.%%E" set "MEDIA=%N%.%%E"
-    if not defined MEDIA if exist "%PAD%.%%E" set "MEDIA=%PAD%.%%E"
-)
-if not defined MEDIA (
-    echo [%PAD%] Omitido: archivo no encontrado.
+call :buscar_video "%CD%\" "" "%N%" "%PAD%"
+call :buscar_audio "%CD%\" "" "%N%" "%PAD%"
+if not defined VIDEO (
+    echo [%PAD%] Omitido: video para keyframes no encontrado.
     exit /b
 )
-call :procesar_media "%MEDIA%" "%PAD%_Retimes" "%N%" "%PAD%"
+if not defined AUDIO (
+    echo [%PAD%] Omitido: WAV vocal no encontrado.
+    exit /b
+)
+call :procesar_par "!VIDEO!" "!AUDIO!" "%CD%\" "%PAD%"
 exit /b
 
 :procesar_archivo
@@ -53,38 +53,93 @@ if not exist "%~1" (
     echo Omitido: "%~1"
     exit /b
 )
-for %%F in ("%~1") do call :procesar_media "%%~fF" "%%~nF_Retimes" "" ""
-exit /b
-
-:procesar_media
-set "INPUT=%~1"
-set "RETIMES=%~2"
-set "N=%~3"
-set "PAD=%~4"
-set "DIR=%~dp1"
-set "BASE=%DIR%%RETIMES%"
-for %%F in ("%INPUT%") do (
-    set "NAME=%%~nxF"
+for %%F in ("%~1") do (
+    set "INPUT=%%~fF"
+    set "DIR=%%~dpF"
     set "STEM=%%~nF"
 )
-if defined PAD (
-    set "ENVELOPE=%DIR%%PAD%_envelope.tsv"
-    set "WAVEFORM=%DIR%%PAD%.waveform.json"
-) else (
-    set "ENVELOPE=%DIR%%STEM%_envelope.tsv"
-    set "WAVEFORM=%DIR%%STEM%.waveform.json"
-)
-echo Procesando: "!NAME!"
 call :es_video "!INPUT!"
 if defined ES_VIDEO (
-    call :keyframes "!INPUT!"
-) else (
-    echo Omitido: keyframes.
+    set "VIDEO=!INPUT!"
+    call :buscar_audio "!DIR!" "!STEM!" "" ""
+    if not defined AUDIO (
+        echo Omitido: WAV vocal emparejado no encontrado para "!INPUT!".
+        exit /b
+    )
+    call :procesar_par "!VIDEO!" "!AUDIO!" "!DIR!" "!STEM!"
+    exit /b
 )
-call :retimes "!INPUT!" "!BASE!"
-call :waveform "!INPUT!" "!WAVEFORM!"
-call :envelope_source "!INPUT!" "!DIR!" "!STEM!" "!N!" "!PAD!"
-call :envelope "!VOCALS!" "!ENVELOPE!"
+call :es_audio "!INPUT!"
+if not defined ES_AUDIO (
+    echo Omitido: se requiere un video y su WAV vocal: "!INPUT!"
+    exit /b
+)
+set "AUDIO=!INPUT!"
+call :buscar_video "!DIR!" "!STEM!" "" ""
+if not defined VIDEO (
+    echo Omitido: video emparejado para keyframes no encontrado para "!INPUT!".
+    exit /b
+)
+call :procesar_par "!VIDEO!" "!AUDIO!" "!DIR!" "!STEM!"
+exit /b
+
+:procesar_par
+set "VIDEO=%~1"
+set "AUDIO=%~2"
+set "DIR=%~3"
+set "STEM=%~4"
+set "BASE=%DIR%%STEM%_Retimes"
+set "ENVELOPE=%DIR%%STEM%_envelope.tsv"
+set "WAVEFORM=%DIR%%STEM%.waveform.json"
+for %%F in ("%VIDEO%") do set "VIDEO_NAME=%%~nxF"
+for %%F in ("%AUDIO%") do set "AUDIO_NAME=%%~nxF"
+echo Video para keyframes: "!VIDEO_NAME!"
+echo Audio vocal para señales: "!AUDIO_NAME!"
+call :keyframes "!VIDEO!"
+call :retimes "!AUDIO!" "!BASE!"
+call :waveform "!AUDIO!" "!WAVEFORM!"
+call :envelope "!AUDIO!" "!ENVELOPE!"
+exit /b
+
+:buscar_video
+set "VIDEO="
+set "DIR=%~1"
+set "STEM=%~2"
+set "N=%~3"
+set "PAD=%~4"
+if defined STEM (
+    for %%E in (%VIDEO_EXT%) do if not defined VIDEO if exist "%DIR%%STEM%.%%E" set "VIDEO=%DIR%%STEM%.%%E"
+)
+if defined N (
+    for %%E in (%VIDEO_EXT%) do (
+        if not defined VIDEO if exist "%DIR%%N%.%%E" set "VIDEO=%DIR%%N%.%%E"
+        if not defined VIDEO if exist "%DIR%%PAD%.%%E" set "VIDEO=%DIR%%PAD%.%%E"
+    )
+)
+exit /b
+
+:buscar_audio
+set "AUDIO="
+set "DIR=%~1"
+set "STEM=%~2"
+set "N=%~3"
+set "PAD=%~4"
+if defined STEM (
+    if exist "%DIR%%STEM%.wav" set "AUDIO=%DIR%%STEM%.wav"
+    if not defined AUDIO if exist "%DIR%%STEM%_vocals.wav" set "AUDIO=%DIR%%STEM%_vocals.wav"
+    if not defined AUDIO if exist "%DIR%%STEM%_Vocals.wav" set "AUDIO=%DIR%%STEM%_Vocals.wav"
+    if not defined AUDIO if exist "%DIR%vocals_%STEM%.wav" set "AUDIO=%DIR%vocals_%STEM%.wav"
+)
+if defined N (
+    if not defined AUDIO if exist "%DIR%%N%.wav" set "AUDIO=%DIR%%N%.wav"
+    if not defined AUDIO if exist "%DIR%%PAD%.wav" set "AUDIO=%DIR%%PAD%.wav"
+    if not defined AUDIO if exist "%DIR%%N%_vocals.wav" set "AUDIO=%DIR%%N%_vocals.wav"
+    if not defined AUDIO if exist "%DIR%%PAD%_vocals.wav" set "AUDIO=%DIR%%PAD%_vocals.wav"
+    if not defined AUDIO if exist "%DIR%%N%_Vocals.wav" set "AUDIO=%DIR%%N%_Vocals.wav"
+    if not defined AUDIO if exist "%DIR%%PAD%_Vocals.wav" set "AUDIO=%DIR%%PAD%_Vocals.wav"
+    if not defined AUDIO if exist "%DIR%vocals_%N%.wav" set "AUDIO=%DIR%vocals_%N%.wav"
+    if not defined AUDIO if exist "%DIR%vocals_%PAD%.wav" set "AUDIO=%DIR%vocals_%PAD%.wav"
+)
 exit /b
 
 :keyframes
@@ -165,45 +220,6 @@ if "!SIZE!"=="0" (
     exit /b
 )
 echo Salida: "%OUT%"
-exit /b
-
-:envelope_source
-set "VOCALS="
-set "INPUT=%~1"
-set "DIR=%~2"
-set "STEM=%~3"
-set "N=%~4"
-set "PAD=%~5"
-call :es_audio "%INPUT%"
-if defined ES_AUDIO (
-    set "VOCALS=%INPUT%"
-    exit /b
-)
-if exist "%DIR%%STEM%_vocals.wav" set "VOCALS=%DIR%%STEM%_vocals.wav"
-if not defined VOCALS if exist "%DIR%%STEM%_Vocals.wav" set "VOCALS=%DIR%%STEM%_Vocals.wav"
-if not defined VOCALS if exist "%DIR%vocals_%STEM%.wav" set "VOCALS=%DIR%vocals_%STEM%.wav"
-if defined N (
-    if not defined VOCALS if exist "%DIR%%N%_vocals.wav" set "VOCALS=%DIR%%N%_vocals.wav"
-    if not defined VOCALS if exist "%DIR%%PAD%_vocals.wav" set "VOCALS=%DIR%%PAD%_vocals.wav"
-    if not defined VOCALS if exist "%DIR%%N%_Vocals.wav" set "VOCALS=%DIR%%N%_Vocals.wav"
-    if not defined VOCALS if exist "%DIR%%PAD%_Vocals.wav" set "VOCALS=%DIR%%PAD%_Vocals.wav"
-    if not defined VOCALS if exist "%DIR%vocals_%N%.wav" set "VOCALS=%DIR%vocals_%N%.wav"
-    if not defined VOCALS if exist "%DIR%vocals_%PAD%.wav" set "VOCALS=%DIR%vocals_%PAD%.wav"
-    if not defined VOCALS if exist "%DIR%%N%.wav" set "VOCALS=%DIR%%N%.wav"
-    if not defined VOCALS if exist "%DIR%%PAD%.wav" set "VOCALS=%DIR%%PAD%.wav"
-)
-if not defined VOCALS if defined PAD (
-    pushd "%DIR%" >nul 2>nul
-    for /f "delims=" %%V in ('dir /b /a-d "*%PAD%*vocals*.wav" 2^>nul') do if not defined VOCALS set "VOCALS=%DIR%%%V"
-    for /f "delims=" %%V in ('dir /b /a-d "*%PAD%*Vocals*.wav" 2^>nul') do if not defined VOCALS set "VOCALS=%DIR%%%V"
-    popd >nul 2>nul
-)
-if not defined VOCALS if defined N (
-    pushd "%DIR%" >nul 2>nul
-    for /f "delims=" %%V in ('dir /b /a-d "*%N%*vocals*.wav" 2^>nul') do if not defined VOCALS set "VOCALS=%DIR%%%V"
-    popd >nul 2>nul
-)
-if not defined VOCALS set "VOCALS=%INPUT%"
 exit /b
 
 :envelope

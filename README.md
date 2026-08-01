@@ -1,8 +1,8 @@
 # Chrono Generators
 
 Archivos por lotes para generar señales de timing usadas por
-[Chrono Suite](https://github.com/Kitherow/Kite-Aegisub-Scripts/blob/main/docs/ChronoSuite.md)
-y por la guía [Arquitectura del Timing](https://kitherow.github.io/Arquitectura-del-Timing/).
+[Chrono Suite](https://github.com/Kiterowx/Kite-Aegisub-Scripts/blob/main/docs/ChronoSuite.md)
+y por la guía [Arquitectura del Timing](https://kiterowx.github.io/Arquitectura-del-Timing/).
 
 ## Requisitos
 
@@ -29,8 +29,16 @@ y por la guía [Arquitectura del Timing](https://kitherow.github.io/Arquitectura
 
 ## Uso
 
-Arrastra archivos de audio o video sobre el BAT correspondiente, o ejecuta el BAT
-sin argumentos para procesar un rango numerado de episodios.
+Prepara cada episodio como un par con el mismo número: `1.mkv` para los keyframes y
+`1.wav` para todas las señales vocales. `Keyframes SCXvid.bat` recibe el video;
+`Retimes Silencios.bat`, `Features Espectrales.bat`, `Envelope RMS.bat` y
+`Waveform JSON.bat` reciben el WAV vocal.
+
+Arrastra el archivo que corresponde sobre cada BAT o ejecútalo sin argumentos para
+procesar un rango numerado. `Procesar Todo.bat` empareja el video y el WAV por nombre:
+extrae los keyframes del primero y genera todas las señales de audio desde el segundo.
+Los nombres antiguos como `1_vocals.wav` se reconocen como respaldo, pero el formato
+normal es `1.wav`.
 
 Los resultados se escriben junto al archivo procesado. Los ejecutables locales,
 señales generadas, logs y carpetas temporales quedan fuera del control de versión.

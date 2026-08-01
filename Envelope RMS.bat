@@ -2,6 +2,7 @@
 setlocal EnableDelayedExpansion
 
 set "FFPROBE=ffprobe"
+set "AUDIO_EXT=wav"
 
 echo Operacion: envelope
 echo.
@@ -42,6 +43,11 @@ if not exist "%~1" (
     echo Omitido: "%~1"
     exit /b
 )
+call :es_audio "%~1"
+if not defined ES_AUDIO (
+    echo Omitido: se requiere un WAV vocal: "%~1"
+    exit /b
+)
 for %%F in ("%~1") do call :generar "%%~fF" "%%~dpnF_envelope.tsv"
 exit /b
 
@@ -52,20 +58,20 @@ set "STEM=%~2"
 set "N=%~3"
 set "PAD=%~4"
 if defined STEM (
-    if exist "%DIR%%STEM%_vocals.wav" set "VOCALS=%DIR%%STEM%_vocals.wav"
+    if exist "%DIR%%STEM%.wav" set "VOCALS=%DIR%%STEM%.wav"
+    if not defined VOCALS if exist "%DIR%%STEM%_vocals.wav" set "VOCALS=%DIR%%STEM%_vocals.wav"
     if not defined VOCALS if exist "%DIR%%STEM%_Vocals.wav" set "VOCALS=%DIR%%STEM%_Vocals.wav"
     if not defined VOCALS if exist "%DIR%vocals_%STEM%.wav" set "VOCALS=%DIR%vocals_%STEM%.wav"
-    if not defined VOCALS if exist "%DIR%%STEM%.wav" set "VOCALS=%DIR%%STEM%.wav"
 )
 if defined N (
+    if not defined VOCALS if exist "%DIR%%N%.wav" set "VOCALS=%DIR%%N%.wav"
+    if not defined VOCALS if exist "%DIR%%PAD%.wav" set "VOCALS=%DIR%%PAD%.wav"
     if not defined VOCALS if exist "%DIR%%N%_vocals.wav" set "VOCALS=%DIR%%N%_vocals.wav"
     if not defined VOCALS if exist "%DIR%%PAD%_vocals.wav" set "VOCALS=%DIR%%PAD%_vocals.wav"
     if not defined VOCALS if exist "%DIR%%N%_Vocals.wav" set "VOCALS=%DIR%%N%_Vocals.wav"
     if not defined VOCALS if exist "%DIR%%PAD%_Vocals.wav" set "VOCALS=%DIR%%PAD%_Vocals.wav"
     if not defined VOCALS if exist "%DIR%vocals_%N%.wav" set "VOCALS=%DIR%vocals_%N%.wav"
     if not defined VOCALS if exist "%DIR%vocals_%PAD%.wav" set "VOCALS=%DIR%vocals_%PAD%.wav"
-    if not defined VOCALS if exist "%DIR%%N%.wav" set "VOCALS=%DIR%%N%.wav"
-    if not defined VOCALS if exist "%DIR%%PAD%.wav" set "VOCALS=%DIR%%PAD%.wav"
 )
 if not defined VOCALS if defined PAD (
     pushd "%DIR%" >nul 2>nul
@@ -78,6 +84,11 @@ if not defined VOCALS if defined N (
     for /f "delims=" %%V in ('dir /b /a-d "*%N%*vocals*.wav" 2^>nul') do if not defined VOCALS set "VOCALS=%DIR%%%V"
     popd >nul 2>nul
 )
+exit /b
+
+:es_audio
+set "ES_AUDIO="
+for %%E in (%AUDIO_EXT%) do if /I "%~x1"==".%%E" set "ES_AUDIO=1"
 exit /b
 
 :generar
