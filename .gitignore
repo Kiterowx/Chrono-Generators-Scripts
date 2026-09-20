@@ -27,3 +27,21 @@ dist/
 
 .env
 .env.*
+
+.venv/
+.venv-*/
+.pytest_cache/
+.ruff_cache/
+.chrono-*/
+.chrono-build-*/
+*.s16le
+*.wav
+*.mkv
+*.mp4
+
+tests/
+test/
+preview/
+previews/
+*.bak
+*.bak-*

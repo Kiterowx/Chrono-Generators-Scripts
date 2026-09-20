@@ -1,0 +1,6 @@
+-r requirements.txt
+torch>=2.2,<3
+torchaudio>=2.2,<3
+librosa>=0.10.2,<0.12
+soundfile>=0.12,<0.14
+numba>=0.59,<0.64

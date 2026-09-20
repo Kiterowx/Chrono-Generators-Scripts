@@ -1,0 +1,2 @@
+-r requirements-vad.txt
+pyinstaller>=6,<7

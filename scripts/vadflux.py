@@ -105,6 +105,12 @@ def main():
     audio, sr = sf.read(args.input, dtype="float32", always_2d=False)
     if audio.ndim > 1:
         audio = audio.mean(axis=1)
+    if sr != 16000:
+        parser.error("A 16 kHz WAV is required; use Silence Retimes.bat to prepare it.")
+    if audio.size == 0:
+        parser.error("The WAV contains no audio samples.")
+
+    torch.set_num_threads(1)
 
     model, utils = torch.hub.load(
         repo_or_dir="snakers4/silero-vad",
